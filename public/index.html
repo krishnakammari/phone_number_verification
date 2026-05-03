@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phone Number Verification</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #4F46E5;
+      --primary-hover: #4338CA;
+      --bg-color: #0F172A;
+      --card-bg: #1E293B;
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+      --border-color: #334155;
+      --success: #10B981;
+      --error: #EF4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      background-color: var(--card-bg);
+      border-radius: 16px;
+      padding: 40px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--border-color);
+      transition: transform 0.3s ease;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background-color: #0F172A;
+      color: var(--text-main);
+      font-size: 16px;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.1s;
+    }
+
+    button:hover {
+      background-color: var(--primary-hover);
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    button:disabled {
+      background-color: var(--border-color);
+      cursor: not-allowed;
+      color: var(--text-muted);
+    }
+
+    .message {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      text-align: center;
+      display: none;
+    }
+
+    .message.success {
+      display: block;
+      background-color: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .message.error {
+      display: block;
+      background-color: rgba(239, 68, 68, 0.1);
+      color: var(--error);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    #verifySection, #profileSection {
+      display: none;
+    }
+
+    .profile-card {
+      background-color: rgba(79, 70, 229, 0.1);
+      border: 1px solid rgba(79, 70, 229, 0.3);
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <h1>Verification Portal</h1>
+      <p>Secure phone number verification</p>
+    </div>
+
+    <!-- Step 1: Request Code -->
+    <div id="requestSection">
+      <div class="form-group">
+        <label for="phoneNumber">Phone Number (include country code)</label>
+        <input type="tel" id="phoneNumber" placeholder="+1234567890" />
+      </div>
+      <button id="requestBtn" onclick="requestCode()">Send Verification Code</button>
+    </div>
+
+    <!-- Step 2: Verify Code -->
+    <div id="verifySection">
+      <div class="form-group">
+        <label for="verificationCode">Verification Code</label>
+        <input type="text" id="verificationCode" placeholder="6-digit code" maxlength="6" />
+      </div>
+      <button id="verifyBtn" onclick="verifyCode()">Verify Number</button>
+      <button onclick="resetForm()" style="background-color: transparent; border: 1px solid var(--border-color); margin-top: 10px;">Back</button>
+    </div>
+
+    <!-- Step 3: Success / Profile -->
+    <div id="profileSection">
+      <div class="message success" style="margin-bottom: 20px;">
+        Successfully Verified!
+      </div>
+      
+      <button id="getDetailsBtn" onclick="fetchProfile()">Get Profile Details</button>
+
+      <div class="profile-card" id="profileCard" style="display: none;">
+        <h3 style="margin-bottom: 10px;">Your Profile</h3>
+        <p style="color: var(--text-muted); font-size: 14px;">Token generated via JWT. Accessing protected route...</p>
+        <pre id="profileData" style="margin-top: 10px; font-size: 12px; overflow-x: auto; color: var(--success);"></pre>
+      </div>
+      <button onclick="resetForm()" style="margin-top: 20px; background-color: transparent; border: 1px solid var(--border-color);">Start Over</button>
+    </div>
+
+    <div id="messageBox" class="message"></div>
+  </div>
+
+  <script>
+    const API_BASE = '/api/auth';
+    let currentPhoneNumber = '';
+    let authToken = '';
+
+    function showMessage(text, type) {
+      const box = document.getElementById('messageBox');
+      box.textContent = text;
+      box.className = `message ${type}`;
+    }
+
+    function clearMessage() {
+      const box = document.getElementById('messageBox');
+      box.className = 'message';
+      box.style.display = 'none';
+    }
+
+    async function requestCode() {
+      const phoneInput = document.getElementById('phoneNumber').value.trim();
+      if (!phoneInput) {
+        showMessage('Please enter a phone number', 'error');
+        return;
+      }
+
+      currentPhoneNumber = phoneInput;
+      const btn = document.getElementById('requestBtn');
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+      clearMessage();
+
+      try {
+        const res = await fetch(`${API_BASE}/request-verification`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phoneNumber: currentPhoneNumber })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          document.getElementById('requestSection').style.display = 'none';
+          document.getElementById('verifySection').style.display = 'block';
+          showMessage('Code sent to ' + currentPhoneNumber, 'success');
+        } else {
+          showMessage(data.error || 'Failed to send code', 'error');
+        }
+      } catch (err) {
+        showMessage('Network error occurred', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Send Verification Code';
+      }
+    }
+
+    async function verifyCode() {
+      const codeInput = document.getElementById('verificationCode').value.trim();
+      if (!codeInput) {
+        showMessage('Please enter the verification code', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('verifyBtn');
+      btn.disabled = true;
+      btn.textContent = 'Verifying...';
+      clearMessage();
+
+      try {
+        const res = await fetch(`${API_BASE}/verify-code`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phoneNumber: currentPhoneNumber, code: codeInput })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          authToken = data.token;
+          document.getElementById('verifySection').style.display = 'none';
+          document.getElementById('profileSection').style.display = 'block';
+          clearMessage();
+          // Removed automatic fetchProfile() call here
+        } else {
+          showMessage(data.error || 'Verification failed', 'error');
+        }
+      } catch (err) {
+        showMessage('Network error occurred', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Verify Number';
+      }
+    }
+
+    async function fetchProfile() {
+      const btn = document.getElementById('getDetailsBtn');
+      btn.disabled = true;
+      btn.textContent = 'Fetching Details...';
+
+      try {
+        const res = await fetch(`${API_BASE}/profile`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        const data = await res.json();
+        
+        document.getElementById('profileCard').style.display = 'block';
+        document.getElementById('profileData').textContent = JSON.stringify(data.user, null, 2);
+      } catch (err) {
+        document.getElementById('profileCard').style.display = 'block';
+        document.getElementById('profileData').textContent = 'Failed to load profile data.';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Get Profile Details';
+      }
+    }
+
+    function resetForm() {
+      currentPhoneNumber = '';
+      authToken = '';
+      document.getElementById('phoneNumber').value = '';
+      document.getElementById('verificationCode').value = '';
+      document.getElementById('requestSection').style.display = 'block';
+      document.getElementById('verifySection').style.display = 'none';
+      document.getElementById('profileSection').style.display = 'none';
+      document.getElementById('profileCard').style.display = 'none';
+      clearMessage();
+    }
+  </script>
+</body>
+</html>

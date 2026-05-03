@@ -1,0 +1,33 @@
+{
+  "name": "phone_number_verification",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/krishnakammari/phone_number_verification.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/krishnakammari/phone_number_verification/issues"
+  },
+  "homepage": "https://github.com/krishnakammari/phone_number_verification#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.6.1",
+    "serverless-http": "^4.0.0",
+    "twilio": "^6.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14",
+    "serverless": "^4.35.0"
+  }
+}
