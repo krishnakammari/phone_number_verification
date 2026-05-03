@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Otp = require('../models/Otp');
 const twilioClient = require('../utils/twilioClient');
 
 /**
@@ -21,21 +22,25 @@ const requestVerification = async (req, res) => {
       return res.status(400).json({ error: 'Phone number is required' });
     }
 
-    // Generate code and expiration (2 minutes from now)
+    // Generate code
     const verificationCode = generateVerificationCode();
-    const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes
 
     // Find user or create a new one
     let user = await User.findOne({ phoneNumber });
     if (!user) {
       user = new User({ phoneNumber });
+      await user.save();
     }
 
-    // Update code and expiration
-    user.verificationCode = verificationCode;
-    user.verificationCodeExpiresAt = expiresAt;
-    // user.isVerified = false; // Optionally reset verification status if needed
-    await user.save();
+    // Delete any existing OTP for this number
+    await Otp.deleteMany({ phoneNumber });
+
+    // Create a new OTP (ttl index will automatically delete it after 2 mins)
+    const otp = new Otp({
+      phoneNumber,
+      code: verificationCode,
+    });
+    await otp.save();
 
     // Send the SMS
     const message = `Your verification code is: ${verificationCode}. It will expire in 2 minutes.`;
@@ -70,31 +75,30 @@ const verifyCode = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    if (!user.verificationCode || !user.verificationCodeExpiresAt) {
-      return res.status(400).json({ error: 'No verification request found for this number' });
+    // Check if OTP exists for this phone number
+    const otpRecord = await Otp.findOne({ phoneNumber });
+
+    if (!otpRecord) {
+      return res.status(400).json({ error: 'Verification code has expired or was not requested. Please request a new one.' });
     }
 
     // Check if code matches
-    if (user.verificationCode !== code) {
+    if (otpRecord.code !== code) {
       return res.status(400).json({ error: 'Invalid verification code' });
-    }
-
-    // Check if code has expired
-    if (Date.now() > user.verificationCodeExpiresAt.getTime()) {
-      return res.status(400).json({ error: 'Verification code has expired. Please request a new one.' });
     }
 
     // Verification successful
     user.isVerified = true;
-    user.verificationCode = undefined; // Clear the code
-    user.verificationCodeExpiresAt = undefined;
     await user.save();
+
+    // Delete the used OTP
+    await Otp.deleteOne({ _id: otpRecord._id });
 
     // Generate JWT token
     const token = jwt.sign(
       { userId: user._id, phoneNumber: user.phoneNumber },
       process.env.JWT_SECRET || 'fallback_secret_key',
-      { expiresIn: process.env.JWT_EXPIRES_IN || '2m' }
+      { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
     );
 
     return res.status(200).json({
@@ -118,7 +122,7 @@ const verifyCode = async (req, res) => {
  */
 const getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId).select('-verificationCode -verificationCodeExpiresAt');
+    const user = await User.findById(req.user.userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
